@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { HeatmapData } from '@/lib/types';
 import {
   Tooltip,
@@ -10,6 +11,20 @@ import {
 
 interface HeatmapProps {
   data: HeatmapData;
+}
+
+// Hook to detect mobile screen
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < breakpoint);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [breakpoint]);
+
+  return isMobile;
 }
 
 // Get color based on which platforms were used
@@ -43,11 +58,35 @@ function getPlatformLabel(day: { leetcode: boolean; codeforces: boolean }): stri
 }
 
 export function Heatmap({ data }: HeatmapProps) {
+  const isMobile = useIsMobile();
+  
+  // Get current month and next month for mobile filtering
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  
   // Sort dates and group by week for 2026 only (filter out any non-2026 dates)
+  // On mobile, filter to show only current month and next month
   const sortedDates = Object.keys(data)
-    .filter(date => date.startsWith('2026-'))
+    .filter(date => {
+      if (!date.startsWith('2026-')) return false;
+      if (!isMobile) return true;
+      
+      // On mobile, show current month + next month only
+      const d = new Date(date);
+      const month = d.getMonth();
+      const year = d.getFullYear();
+      
+      // Current month or next month
+      const isCurrentMonth = month === currentMonth && year === currentYear;
+      const isNextMonth = (month === (currentMonth + 1) % 12) && 
+        (currentMonth === 11 ? year === currentYear + 1 : year === currentYear);
+      
+      return isCurrentMonth || isNextMonth;
+    })
     .sort();
-  const weeks: string[][] = [];
+    
+  const allWeeks: string[][] = [];
   
   // Get the starting day offset (0 = Sunday, 1 = Monday, etc.)
   if (sortedDates.length > 0) {
@@ -59,7 +98,7 @@ export function Heatmap({ data }: HeatmapProps) {
     
     for (const date of sortedDates) {
       if (currentWeek.length === 7) {
-        weeks.push(currentWeek);
+        allWeeks.push(currentWeek);
         currentWeek = [];
       }
       currentWeek.push(date);
@@ -67,9 +106,11 @@ export function Heatmap({ data }: HeatmapProps) {
     
     // Push the last week
     if (currentWeek.length > 0) {
-      weeks.push(currentWeek);
+      allWeeks.push(currentWeek);
     }
   }
+  
+  const weeks = allWeeks;
 
   const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -98,14 +139,22 @@ export function Heatmap({ data }: HeatmapProps) {
 
   const monthPositions = getMonthPositions();
 
+  // Get display title based on what's shown
+  const getTitle = () => {
+    if (!isMobile) return '2026';
+    const nextMonth = (currentMonth + 1) % 12;
+    return `${monthLabels[currentMonth]} - ${monthLabels[nextMonth]} 2026`;
+  };
+
   return (
-    <div className="w-full overflow-x-auto flex justify-center">
-      <div className="inline-block p-4">
-        {/* Year Title */}
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">2026</h3>
+    <div className="p-4 flex flex-col items-center">
+        {/* Year/Month Title */}
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">{getTitle()}</h3>
         
+        {/* Heatmap container - centered */}
+        <div className="inline-block">
         {/* Month labels */}
-        <div className="flex mb-2 ml-12">
+        <div className="flex mb-2 ml-10">
           <div className="flex" style={{ gap: '2px' }}>
             {weeks.map((_, weekIndex) => {
               const monthLabel = monthPositions.find(m => m.col === weekIndex);
@@ -181,25 +230,26 @@ export function Heatmap({ data }: HeatmapProps) {
             </TooltipProvider>
           </div>
         </div>
+        </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap items-center justify-center gap-4 mt-6 text-xs text-gray-600">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-6 text-xs text-gray-600">
           <span className="font-medium text-gray-800">Legend:</span>
           <div className="flex items-center gap-1.5">
-            <div className="w-3.5 h-3.5 rounded-[3px] bg-gray-100 border border-gray-200" />
-            <span>None</span>
+            <div className="w-3.5 h-3.5 rounded-[3px] bg-gray-100 border border-gray-200 shrink-0" />
+            <span className="whitespace-nowrap">None</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3.5 h-3.5 rounded-[3px] bg-amber-500" />
-            <span>LeetCode</span>
+            <div className="w-3.5 h-3.5 rounded-[3px] bg-amber-500 shrink-0" />
+            <span className="whitespace-nowrap">LeetCode</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3.5 h-3.5 rounded-[3px] bg-sky-500" />
-            <span>Codeforces</span>
+            <div className="w-3.5 h-3.5 rounded-[3px] bg-sky-500 shrink-0" />
+            <span className="whitespace-nowrap">Codeforces</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3.5 h-3.5 rounded-[3px] bg-emerald-500" />
-            <span>Both</span>
+            <div className="w-3.5 h-3.5 rounded-[3px] bg-emerald-500 shrink-0" />
+            <span className="whitespace-nowrap">Both</span>
           </div>
         </div>
 
@@ -210,14 +260,13 @@ export function Heatmap({ data }: HeatmapProps) {
             {[50, 65, 80, 90, 100].map((opacity) => (
               <div
                 key={opacity}
-                className="w-3.5 h-3.5 rounded-[3px] bg-emerald-500"
+                className="w-3.5 h-3.5 rounded-[3px] bg-emerald-500 shrink-0"
                 style={{ opacity: opacity / 100 }}
               />
             ))}
           </div>
           <span>More</span>
         </div>
-      </div>
     </div>
   );
 }

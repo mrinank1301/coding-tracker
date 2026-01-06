@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Heatmap } from '@/components/Heatmap';
 import { ContestRankings } from '@/components/ContestRankings';
 import { ProblemStats } from '@/components/ProblemStats';
@@ -229,21 +228,23 @@ export default function Home() {
           />
         </div>
 
-        {/* Heatmap Section - Now at Bottom */}
-        <Card className="bg-white border border-gray-200 shadow-sm mb-8">
-          <CardHeader className="border-b border-gray-100">
-            <CardTitle className="flex items-center gap-2 text-gray-800">
+        {/* Heatmap Section - Custom container for proper mobile scrolling */}
+        <div className="bg-white border border-gray-200 shadow-sm rounded-xl mb-8">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="flex items-center gap-2 text-gray-800 font-semibold">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h8V3a1 1 0 112 0v1h1a2 2 0 012 2v11a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2h1V3a1 1 0 011-1zm11 4H4v10h12V6z" clipRule="evenodd" />
               </svg>
               Activity Heatmap
               <span className="text-sm font-normal text-gray-500 ml-2">2026</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
+            </h2>
+          </div>
+          {/* Heatmap content - scrollable on mobile */}
+          <div className="overflow-x-auto">
             <Heatmap data={heatmapData} />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Footer */}
         <footer className="text-center text-sm text-gray-500 border-t border-gray-200 pt-8">
